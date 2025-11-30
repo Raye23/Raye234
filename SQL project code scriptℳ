@@ -1,0 +1,256 @@
+-- Create the music_library database if it doesn't exist, and then switch to it
+CREATE DATABASE IF NOT EXISTS music_library;
+USE music_library;
+
+-- Create Artists table
+CREATE TABLE Artists (
+    artist_id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    nationality VARCHAR(100),
+    genre VARCHAR(100)
+);
+
+-- Insert data into Artists table
+INSERT INTO Artists (name, nationality, genre)
+VALUES 
+    ('The Weeknd', 'Canadian', 'R&B'),
+    ('Taylor Swift', 'American', 'Pop'),
+    ('Ariana Grande', 'American', 'Pop'),
+    ('Rihanna', 'Barbados', 'R&B');
+
+-- Create Albums table
+CREATE TABLE Albums (
+    album_id INT AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    artist_id INT,
+    release_date DATE,
+    genre VARCHAR(100),
+    FOREIGN KEY (artist_id) REFERENCES Artists(artist_id)
+);
+
+-- Insert data into Albums table
+INSERT INTO Albums (title, artist_id, release_date, genre)
+VALUES 
+    ('Dawn FM', 1, '2022-01-07', 'R&B/Soul'),
+    ('After Hours', 1, '2020-03-20', 'R&B/Soul'),
+    ('The Tortured Poets Department', 2, '2024-04-19', 'Folk-pop'),
+    ('Midnights', 2, '2022-10-21', 'Electropop'),
+    ('Eternal Sunshine', 3, '2024-03-08', 'Pop'),
+    ('Positions', 3, '2020-10-30', 'R&B/Soul'),
+    ('Anti', 4, '2016-01-28', 'R&B/Soul'),
+    ('Unapologetic', 4, '2012-11-19', 'Pop');
+
+-- Create Songs table
+CREATE TABLE Songs (
+    song_id INT AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    duration TIME,
+    track_number INT,
+    album_id INT,
+    FOREIGN KEY (album_id) REFERENCES Albums(album_id)
+);
+
+-- Insert data into Songs table
+INSERT INTO Songs (title, duration, track_number, album_id) 
+VALUES 
+    ('Blinding Lights', '00:03:20', 9, 2),
+    ('Out of Time', '00:03:35', 7, 1),
+    ('Fortnight', '00:03:49', 1, 3),
+    ('Anti-Hero', '00:03:21', 3, 4),
+    ('We can’t be friends (wait for your love)', '00:03:49', 10, 5),
+    ('34+35', '00:02:54', 2, 6),
+    ('Work', '00:03:39', 4, 7),
+    ('Diamonds', '00:03:45', 2, 8);
+
+-- Create stored procedure to get artist album count
+DELIMITER //
+CREATE PROCEDURE GetArtistAlbumCount (IN artistName VARCHAR(255))
+BEGIN
+    SELECT COUNT(*) AS album_count
+    FROM Albums a
+    JOIN Artists ar ON a.artist_id = ar.artist_id
+    WHERE ar.name = artistName;
+END //
+DELIMITER ;
+
+-- Update artist nationality for 'Rihanna'
+UPDATE Artists
+SET nationality = 'Barbadian'
+WHERE name = 'Rihanna';
+
+-- Call the stored procedure to get album count for 'Rihanna'
+CALL GetArtistAlbumCount('Rihanna');
+
+-- Output artist album counts
+CALL GetArtistAlbumCount('The Weeknd');
+CALL GetArtistAlbumCount('Taylor Swift');
+
+-- Create the Users table
+CREATE TABLE Users (
+    user_id INT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(255) NOT NULL,
+    email VARCHAR(255) NOT NULL
+);
+
+-- Insert data into the Users table
+INSERT INTO Users (username, email)
+VALUES 
+    ('Oliviablake24', 'OliviaBlake24@gmail.com'), -- 1 
+    ('Jaystevens3', 'JaySteve@gmail.com'),        -- 2
+    ('Raye343', 'RachaelBrown@hotmail.com'),      -- 3
+    ('jessieraye/', 'JessicaRavens89@gmail.com'), -- 4
+    ('riotusa', 'Robert-9@outlook.com'),          -- 5
+    ('megan345', 'MegansDuffy@outlook.com');      -- 6
+
+-- Create the Playlists table with a foreign key constraint referencing the Users table
+CREATE TABLE Playlists (
+    playlist_id INT AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    creator_id INT,
+    description TEXT,
+    FOREIGN KEY (creator_id) REFERENCES Users(user_id)
+);
+
+-- Insert data into the Playlists table
+INSERT INTO Playlists (title, creator_id, description)
+VALUES 
+    ('My Favorites', 1, 'A collection of my favorite songs'),
+    ('Road Trip Playlist', 2, 'Songs for a fun road trip'),
+    ('Relaxing Vibes', 3, 'Chill tunes for relaxation'),
+    ('Night Out', 4, 'Pre night out songs'),
+    ('Shower Playlist', 5, 'Songs for self care time'),
+    ('Gym', 6, 'Hardcore workout tunes');
+    
+-- create user favourites table 
+CREATE TABLE UserFavorites (
+    favorite_id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT,
+    song_id INT,
+    album_id INT,
+    favorite_type ENUM('song', 'album'),
+    rating INT,
+    device_info VARCHAR(255),
+    favorite_count INT DEFAULT 1,
+    FOREIGN KEY (user_id) REFERENCES Users(user_id),
+    FOREIGN KEY (song_id) REFERENCES Songs(song_id),
+    FOREIGN KEY (album_id) REFERENCES Albums(album_id)
+  );
+  
+  -- Insert data into the UserFavorites table (favouriting songs)
+INSERT INTO UserFavorites (user_id, song_id, favorite_type, album_id, rating, device_info)
+VALUES 
+    (1, 8, 'song', NULL, 4, 'Android'),
+    (1, 3, 'song', NULL, 3, 'iPhone'),
+    (2, 1, 'song', NULL, 4, 'Web Browser'),
+    (2, 2, 'song', NULL, 3, 'Android'),
+    (3, 7, 'song', NULL, 5, 'iPhone'),
+    (3, 3, 'song', NULL, 4, 'Web Browser'),
+    (4, 5, 'song', NULL, 3, 'Android'),
+    (4, 4, 'song', NULL, 3, 'iPhone'),
+    (5, 7, 'song', NULL, 5, 'Android'),
+    (5, 6, 'song', NULL, 4, 'Web Browser'),
+    (6, 5, 'song', NULL, 4, 'iPhone'),
+    (6, 4, 'song', NULL, 2, 'Android');
+    
+-- Create a view combining data from Artists, Albums, and Songs tables
+CREATE VIEW MusicLibrary AS
+SELECT a.artist_id, a.name AS artist_name, al.album_id, al.title AS album_title, s.song_id, s.title AS song_title
+FROM Artists a
+JOIN Albums al ON a.artist_id = al.artist_id
+JOIN Songs s ON al.album_id = s.album_id;
+
+-- Query the MusicLibrary view to retrieve combined data
+SELECT *
+FROM MusicLibrary;
+    
+-- Create the stored function GetAlbumReleaseYear
+DELIMITER //
+
+CREATE FUNCTION GetAlbumReleaseYear(albumId INT) RETURNS INT
+    DETERMINISTIC
+BEGIN
+    DECLARE releaseYear INT;
+    
+    -- Retrieve the release year of the album with the specified albumId
+    SELECT YEAR(release_date) INTO releaseYear
+    FROM Albums
+    WHERE album_id = albumId;
+    
+    -- Return the release year
+    RETURN releaseYear;
+END //
+
+DELIMITER ;
+
+-- demonstrate how it runs 
+-- Query to get the release year of an album using the stored function
+SELECT album_id, title, GetAlbumReleaseYear(album_id) AS release_year
+FROM Albums;
+
+DELIMITER //
+
+-- create the stored function GetArtistAlbumGenre 
+CREATE FUNCTION GetArtistAlbumGenre(artistName VARCHAR(255))
+RETURNS VARCHAR(100) DETERMINISTIC
+BEGIN
+    DECLARE genreName VARCHAR(100);
+    
+    -- Retrieve the genre of the artist's albums
+    SELECT genre INTO genreName
+    FROM Albums
+    WHERE artist_id = (
+        SELECT artist_id
+        FROM Artists
+        WHERE name = artistName
+        LIMIT 1
+    )
+    ORDER BY release_date ASC
+    LIMIT 1;
+    
+    RETURN genreName; -- Return the genre
+END //
+DELIMITER ;
+
+-- demonstrate how stored function runs 
+-- Integrate the GetArtistAlbumGenre stored function into a query
+SELECT name AS artist_name, GetArtistAlbumGenre(name) AS album_genre
+FROM Artists;
+
+-- core requirement 5 : Prepare an example query with a subquery to demonstrate how to extract data from your DB for analysis 
+SELECT 
+    a.title AS album_title,
+    a.release_date AS album_release_date,
+    ar.name AS artist_name
+FROM 
+    Albums a
+JOIN 
+    Artists ar ON a.artist_id = ar.artist_id;
+
+-- Example query with GROUP BY and HAVING to find average song duration per genre (Adv req -5)
+SELECT ar.genre, AVG(TIME_TO_SEC(s.duration)) AS avg_duration_seconds
+FROM Artists ar
+JOIN Albums al ON ar.artist_id = al.artist_id
+JOIN Songs s ON al.album_id = s.album_id
+GROUP BY ar.genre
+HAVING AVG(TIME_TO_SEC(s.duration)) > 180; -- Filter out genres with average duration less than 3 minutes (180 seconds)
+
+-- Create an event to update the user's favorite playlist based on their recent listening history (adv requirement 3)
+CREATE EVENT UpdateFavoritePlaylist
+ON SCHEDULE EVERY 1 DAY
+DO
+    UPDATE Playlists
+    SET description = 'Updated based on recent listening history'
+    WHERE title = 'My Favorites';
+
+-- Create Trigger: UpdateArtistGenre
+DELIMITER //
+CREATE TRIGGER UpdateArtistGenre AFTER INSERT ON Albums
+FOR EACH ROW
+BEGIN
+    UPDATE Artists
+    SET genre = NEW.genre
+    WHERE artist_id = NEW.artist_id
+    AND genre <> NEW.genre;
+END //
+DELIMITER ;
+
